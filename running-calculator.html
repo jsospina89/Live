@@ -448,7 +448,7 @@
   <div class="data-panels-row">
     <div class="panel">
       <h2>Sync to GitHub</h2>
-      <div class="hint">Paste a <strong>fine-grained personal access token</strong> (github.com → Settings → Developer settings → Personal access tokens), scoped to just this repo with <strong>Contents: Read and write</strong>, and set the shortest expiration GitHub allows. It's kept in memory for this page load only — not saved anywhere — and sent only to api.github.com, never to me. Paste it again next time you visit; for real one-time use, revoke it on GitHub right after you're done syncing.</div>
+      <div class="hint">Paste a <strong>fine-grained personal access token</strong> (github.com → Settings → Developer settings → Personal access tokens), scoped to just this repo with <strong>Contents: Read and write</strong>, and set the shortest expiration GitHub allows. It's saved in this browser's local storage so you don't have to re-paste it every visit — sent only to api.github.com, never to me. That means anyone with access to this browser/device could read it: don't use this on a shared or public computer, and use <strong>Forget token</strong> below if you ever need to clear it.</div>
       <div class="row">
         <div class="field">
           <label for="ghToken">Personal access token</label>
@@ -458,6 +458,7 @@
       <div class="row" style="margin-top:12px;">
         <button type="button" class="btn secondary" id="ghSyncBtn">Sync now</button>
         <button type="button" class="btn secondary" id="ghPullBtn">Pull from GitHub</button>
+        <button type="button" class="btn secondary" id="ghForgetBtn">Forget token</button>
       </div>
       <div class="hint" id="ghStatus" style="margin-top:12px; margin-bottom:0;">Not configured — paste a token above.</div>
     </div>
@@ -716,28 +717,35 @@ function armConfirm(btn, action) {
 // Owner/repo/branch/path are fixed to this app's own repo rather than exposed as settings.
 const GH_DEFAULTS = { owner: 'jsospina89', repo: 'live', branch: 'main', path: 'running-data.json' };
 
-// The token is kept in memory only for this page load — never written to localStorage —
-// so it doesn't linger in the browser. Paste it again each time you come back to sync.
-// (One old exception: if a token from before this change is still sitting in storage from
-// an earlier version of this app, it's read once here and immediately erased.)
-function ghConsumePreviouslyStoredToken() {
+// The token is saved to localStorage so it survives a page reload/revisit — trades a little
+// security (anything with access to this browser can read it) for not re-pasting it every time.
+function ghLoadStoredToken() {
+  try { return localStorage.getItem('runCalc.ghToken') || ''; } catch { return ''; }
+}
+function ghSaveStoredToken(token) {
   try {
-    const t = localStorage.getItem('runCalc.ghToken');
-    if (t) localStorage.removeItem('runCalc.ghToken');
-    return t || '';
-  } catch { return ''; }
+    if (token) localStorage.setItem('runCalc.ghToken', token);
+    else localStorage.removeItem('runCalc.ghToken');
+  } catch {}
 }
 
 const ghTokenInput = document.getElementById('ghToken');
 const ghSyncBtn = document.getElementById('ghSyncBtn');
 const ghPullBtn = document.getElementById('ghPullBtn');
+const ghForgetBtn = document.getElementById('ghForgetBtn');
 const ghStatus = document.getElementById('ghStatus');
 
-const carriedOverToken = ghConsumePreviouslyStoredToken();
-if (carriedOverToken) {
-  ghTokenInput.value = carriedOverToken;
-  ghStatus.textContent = 'Loaded a token saved by an earlier version, one last time — it will not be remembered going forward.';
+const storedToken = ghLoadStoredToken();
+if (storedToken) {
+  ghTokenInput.value = storedToken;
+  ghStatus.textContent = 'Using the token saved in this browser.';
 }
+ghTokenInput.addEventListener('change', () => ghSaveStoredToken(ghTokenInput.value.trim()));
+ghForgetBtn.addEventListener('click', () => {
+  ghTokenInput.value = '';
+  ghSaveStoredToken('');
+  ghStatus.textContent = 'Token forgotten — paste a new one to sync again.';
+});
 
 function ghConfig() {
   return { token: ghTokenInput.value.trim(), ...GH_DEFAULTS };
@@ -788,6 +796,7 @@ async function ghPutFile(cfg, payload, sha) {
 async function syncToGitHub() {
   const cfg = ghConfig();
   if (!cfg.token) return;
+  ghSaveStoredToken(cfg.token);
   ghStatus.textContent = 'Syncing…';
   try {
     const existing = await ghGetFile(cfg);
@@ -821,6 +830,7 @@ function applyRestoredData(parsed) {
 armConfirm(ghPullBtn, async () => {
   const cfg = ghConfig();
   if (!cfg.token) { ghStatus.textContent = 'Add a token first.'; return; }
+  ghSaveStoredToken(cfg.token);
   ghStatus.textContent = 'Pulling…';
   try {
     const existing = await ghGetFile(cfg);
