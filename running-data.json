@@ -1,4 +1,18 @@
 {
-  "entries": [],
-  "weight": null
+  "entries": [
+    {
+      "id": 1791519810056,
+      "label": "Run",
+      "date": "2026-10-09",
+      "surface": "street",
+      "km": 6.666666666666667,
+      "mi": 4.142474614915559,
+      "durationHours": 0.9166666666666666,
+      "calories": 633.0583949733557
+    }
+  ],
+  "weight": {
+    "value": 96,
+    "unit": "kg"
+  }
 }
