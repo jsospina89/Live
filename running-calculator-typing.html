@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Running Calculator</title>
+<style>
+  :root {
+    --bg: #f4f6f5;
+    --panel: #ffffff;
+    --ink: #1c2321;
+    --muted: #6b7770;
+    --border: #e1e6e3;
+    --orange: #ff6b35;
+    --orange-dark: #e6501f;
+    --teal: #12877f;
+    --teal-light: #e3f5f3;
+    --orange-light: #fff1ea;
+    --danger: #d94848;
+    --shadow: 0 6px 20px rgba(20, 40, 35, 0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161a;
+      --panel: #1a2126;
+      --ink: #ecf1ee;
+      --muted: #9aa8a1;
+      --border: #2a3339;
+      --teal-light: #16302d;
+      --orange-light: #2c1f16;
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .logo {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--orange), var(--teal));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  h1 { font-size: 22px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+  .panel h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+
+  .hint { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 120px; }
+  .field label { font-size: 12px; color: var(--muted); font-weight: 600; }
+  input, select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--ink);
+    outline: none;
+    font-family: inherit;
+    resize: vertical;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--teal); }
+
+  .unit-toggle { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .unit-toggle button {
+    flex: 1; border: none; background: var(--bg); color: var(--muted);
+    padding: 10px 12px; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  .unit-toggle button.active { background: var(--teal); color: white; }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .chip {
+    border: 1px solid var(--border); background: var(--bg); color: var(--ink);
+    border-radius: 999px; padding: 6px 13px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--teal); color: var(--teal); }
+
+  .btn {
+    border: none; border-radius: 10px; padding: 11px 20px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+    color: white;
+  }
+  .btn:hover { filter: brightness(1.05); }
+  .btn.secondary {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    font-weight: 600;
+  }
+  .btn.confirm-armed {
+    background: var(--danger); color: white; border-color: var(--danger);
+  }
+
+  .add-row { display: flex; margin-top: 14px; }
+  .add-row .btn { flex: 1; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+  }
+  .stat {
+    background: var(--teal-light);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .stat .val { font-size: 20px; font-weight: 800; color: var(--teal); }
+  .stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+  .entries { display: flex; flex-direction: column; gap: 10px; }
+  .entry {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+  .entry .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 10px 16px;
+    margin-top: 8px;
+  }
+  .entry .metrics .m .v { font-weight: 700; font-size: 14px; }
+  .entry .metrics .m .l { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .entry .title { font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 8px; color: var(--orange-dark); }
+  .entry .date { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .split-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .split-chip {
+    background: var(--teal-light); color: var(--teal);
+    font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+  }
+  .badge {
+    background: var(--orange-light); color: var(--orange-dark);
+    font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  }
+  .del {
+    background: none; border: none; color: var(--danger); cursor: pointer;
+    font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 8px;
+  }
+  .del:hover { background: rgba(217, 72, 72, 0.1); }
+
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 14px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; }
+
+  .sort-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .sort-row span { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .run-sort-btn, .surface-filter-btn {
+    border: 1px solid var(--border); background: var(--bg); color: var(--muted);
+    border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  }
+  .run-sort-btn.active, .surface-filter-btn.active { background: var(--teal); color: white; border-color: var(--teal); }
+  .badge.surface { background: var(--teal-light); color: var(--teal); }
+
+  .records-table { overflow-x: auto; padding-bottom: 4px; }
+  .records-inner { width: max-content; min-width: 100%; }
+  .records-header {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 90px repeat(6, minmax(90px, 1fr));
+    gap: 10px;
+    padding: 0 16px 8px;
+    border: 1px solid transparent;
+    border-bottom-width: 0;
+  }
+  .col-sort-btn, .col-label {
+    background: none; border: none; padding: 0; text-align: left;
+    font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted); font-family: inherit;
+  }
+  .col-sort-btn { cursor: pointer; }
+  .col-sort-btn:hover, .col-sort-btn.active { color: var(--teal); }
+  .col-distance { grid-column: 1; }
+  .col-time { grid-column: 2 / span 2; }
+  .col-pace { grid-column: 4 / span 2; }
+  .col-speed { grid-column: 6 / span 2; }
+
+  .records { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+  .record {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 90px repeat(6, minmax(90px, 1fr));
+    gap: 10px;
+    align-items: center;
+  }
+  .record .cat { font-weight: 800; font-size: 17px; }
+  .record .m .v { font-weight: 700; font-size: 13.5px; }
+  .record .m .l { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .record .none { color: var(--muted); font-size: 13px; font-style: italic; grid-column: 2 / -1; }
+  .record .src { font-size: 10.5px; color: var(--muted); grid-column: 1 / -1; }
+  .record .m .v.fast { color: var(--orange-dark); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🏃</div>
+    <div>
+      <h1>Running Calculator</h1>
+      <div class="sub">Give it any two of distance, time, speed or pace — the rest, and calories, work themselves out.</div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2>Add a run</h2>
+    <div class="hint">Fill in any <strong>two</strong> of Distance / Time / Speed / Pace — the rest work themselves out.</div>
+    <div class="row">
+      <div class="field">
+        <label for="labelInput">Label (optional)</label>
+        <input type="text" id="labelInput" placeholder="Morning run">
+      </div>
+      <div class="field">
+        <label for="dateInput">Date</label>
+        <input type="date" id="dateInput">
+      </div>
+      <div class="field" style="max-width:200px;">
+        <label>Surface</label>
+        <div class="unit-toggle">
+          <button type="button" id="surfaceStreet" class="active">Street</button>
+          <button type="button" id="surfaceTreadmill">Treadmill</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <div class="field">
+        <label for="distInput">Distance (type digits, last two are decimals)</label>
+        <input type="text" inputmode="numeric" id="distInput" placeholder="e.g. 500 → 5.00">
+        <div class="chips" id="distChips"></div>
+      </div>
+      <div class="field" style="max-width:140px;">
+        <label>Unit</label>
+        <div class="unit-toggle">
+          <button type="button" id="dUnitKm" class="active">km</button>
+          <button type="button" id="dUnitMi">mi</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="timeInput">Time (type digits, right-to-left)</label>
+        <input type="text" inputmode="numeric" id="timeInput" placeholder="e.g. 2530 → 25:30">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <div class="field">
+        <label for="speedInput">Speed</label>
+        <input type="number" id="speedInput" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 12">
+      </div>
+      <div class="field" style="max-width:140px;">
+        <label>Unit</label>
+        <div class="unit-toggle">
+          <button type="button" id="sUnitKmh" class="active">km/h</button>
+          <button type="button" id="sUnitMph">mph</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="paceInput">Pace (type digits, right-to-left)</label>
+        <input type="text" inputmode="numeric" id="paceInput" placeholder="e.g. 500 → 5:00">
+      </div>
+      <div class="field" style="max-width:140px;">
+        <label>Unit</label>
+        <div class="unit-toggle">
+          <button type="button" id="pUnitKm" class="active">/km</button>
+          <button type="button" id="pUnitMi">/mi</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <div class="field">
+        <label for="weightInput">Weight (used for this run's calories)</label>
+        <input type="number" id="weightInput" min="1" step="0.1" placeholder="e.g. 70">
+      </div>
+      <div class="field" style="max-width:140px;">
+        <label>Unit</label>
+        <div class="unit-toggle">
+          <button type="button" id="wUnitKg" class="active">kg</button>
+          <button type="button" id="wUnitLb">lb</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="add-row">
+      <button class="btn" id="addBtn">Add run</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Totals</h2>
+    <div class="summary-grid" id="summaryGrid"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Records</h2>
+    <div class="hint">For each standard distance: the average of what your pace on every long-enough run implies you'd run it in, plus your fastest ever implied time and which run set it. Treadmill and street are tracked separately — they're not the same effort.</div>
+    <div class="sort-row">
+      <span>Surface</span>
+      <button type="button" class="surface-filter-btn" data-surface="street">Street</button>
+      <button type="button" class="surface-filter-btn" data-surface="treadmill">Treadmill</button>
+      <button type="button" class="surface-filter-btn" data-surface="all">Combined</button>
+    </div>
+    <div class="records-table">
+      <div class="records-inner">
+        <div class="records-header">
+          <button type="button" class="col-sort-btn col-distance" data-sort="distance">Distance<span class="arrow"></span></button>
+          <div class="col-label col-time">Time</div>
+          <button type="button" class="col-sort-btn col-pace" data-sort="pace">Pace<span class="arrow"></span></button>
+          <button type="button" class="col-sort-btn col-speed" data-sort="speed">Speed<span class="arrow"></span></button>
+        </div>
+        <div class="records" id="recordsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="runsPanel">
+    <h2>Runs</h2>
+    <div class="sort-row">
+      <span>Sort by</span>
+      <button type="button" class="run-sort-btn" data-sort="date">Date</button>
+      <button type="button" class="run-sort-btn" data-sort="distance">Distance</button>
+      <button type="button" class="run-sort-btn" data-sort="pace">Pace</button>
+      <button type="button" class="run-sort-btn" data-sort="speed">Speed</button>
+    </div>
+    <div class="entries" id="entriesList"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Sync to GitHub</h2>
+    <div class="hint">Paste a <strong>fine-grained personal access token</strong> (github.com → Settings → Developer settings → Personal access tokens), scoped to just this repo with <strong>Contents: Read and write</strong>, and set the shortest expiration GitHub allows. It's kept in memory for this page load only — not saved anywhere — and sent only to api.github.com, never to me. Paste it again next time you visit; for real one-time use, revoke it on GitHub right after you're done syncing.</div>
+    <div class="row">
+      <div class="field">
+        <label for="ghToken">Personal access token</label>
+        <input type="password" id="ghToken" placeholder="github_pat_...">
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <button type="button" class="btn secondary" id="ghSyncBtn">Sync now</button>
+      <button type="button" class="btn secondary" id="ghPullBtn">Pull from GitHub</button>
+    </div>
+    <div class="hint" id="ghStatus" style="margin-top:12px; margin-bottom:0;">Not configured — paste a token above.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Export / Import</h2>
+    <div class="hint">Export everything to a file, or import one back in. Works when this page is opened normally (e.g. your GitHub Pages link) — downloads are blocked inside embedded previews.</div>
+    <div class="row">
+      <button type="button" class="btn secondary" id="downloadBtn">Export</button>
+      <button type="button" class="btn secondary" id="importBtn">Import</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+  </div>
+
+  <footer>Stored locally in this browser, and in git once GitHub sync is set up. Calories are a MET-based estimate, not a medical measurement.</footer>
+</div>
+
+<script>
+const KM_PER_MI = 1.609344;
+const KG_PER_LB = 0.45359237;
+
+// speed (mph) -> running MET, from the Compendium of Physical Activities
+const MET_TABLE = [
+  [4.0, 6.0], [5.0, 8.3], [5.2, 9.0], [6.0, 9.8], [6.7, 10.5],
+  [7.0, 11.0], [7.5, 11.5], [8.0, 11.8], [8.6, 12.3], [9.0, 12.8],
+  [10.0, 14.5], [11.0, 16.0], [12.0, 19.0], [13.0, 19.8], [14.0, 23.0]
+];
+
+function metForSpeedMph(mph) {
+  if (mph <= MET_TABLE[0][0]) return MET_TABLE[0][1];
+  if (mph >= MET_TABLE[MET_TABLE.length - 1][0]) return MET_TABLE[MET_TABLE.length - 1][1];
+  for (let i = 0; i < MET_TABLE.length - 1; i++) {
+    const [s1, m1] = MET_TABLE[i], [s2, m2] = MET_TABLE[i + 1];
+    if (mph >= s1 && mph <= s2) {
+      const t = (mph - s1) / (s2 - s1);
+      return m1 + t * (m2 - m1);
+    }
+  }
+  return MET_TABLE[MET_TABLE.length - 1][1];
+}
+
+function parseTimeToHours(str) {
+  const parts = str.trim().split(':').map(p => p.trim());
+  if (parts.some(p => p === '' || isNaN(p))) return null;
+  let h = 0, m = 0, s = 0;
+  if (parts.length === 3) [h, m, s] = parts.map(Number);
+  else if (parts.length === 2) [m, s] = parts.map(Number);
+  else if (parts.length === 1) [s] = parts.map(Number);
+  else return null;
+  const totalHours = h + m / 60 + s / 3600;
+  return totalHours > 0 ? totalHours : null;
+}
+
+function fmtHMS(hours) {
+  const totalSec = Math.round(hours * 3600);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return [h, m, s].map((n, i) => i === 0 && n === 0 ? null : String(n).padStart(2, '0')).filter(x => x !== null).join(':') || '0:' + String(s).padStart(2,'0');
+}
+
+function fmtPace(minPerUnit) {
+  if (!isFinite(minPerUnit) || minPerUnit <= 0) return '—';
+  const m = Math.floor(minPerUnit);
+  const s = Math.round((minPerUnit - m) * 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// "mm:ss" (or "m:ss") -> total minutes, fractional
+function parsePaceToMinutes(str) {
+  const parts = str.trim().split(':').map(p => p.trim());
+  if (parts.length !== 2 || parts.some(p => p === '' || isNaN(p))) return null;
+  const [m, s] = parts.map(Number);
+  const total = m + s / 60;
+  return total > 0 ? total : null;
+}
+
+// Digits typed right-to-left become seconds, then minutes, then hours — no colon key needed.
+// "530" -> "5:30", "13056" -> "1:30:56".
+function maskClockDigits(digits, withHours) {
+  digits = digits.replace(/\D/g, '').slice(0, withHours ? 6 : 4);
+  if (!digits) return '';
+  const ss = digits.slice(-2).padStart(2, '0');
+  const mmRaw = digits.length > 2 ? digits.slice(withHours ? -4 : 0, -2) : '';
+  if (!withHours) {
+    return mmRaw ? `${parseInt(mmRaw, 10)}:${ss}` : digits; // still typing seconds only
+  }
+  const hhRaw = digits.length > 4 ? digits.slice(0, -4) : '';
+  if (hhRaw) return `${parseInt(hhRaw, 10)}:${mmRaw.padStart(2, '0')}:${ss}`;
+  if (mmRaw) return `${parseInt(mmRaw, 10)}:${ss}`;
+  return digits;
+}
+
+function attachClockMask(input, withHours) {
+  input.addEventListener('input', () => {
+    const digits = input.value.replace(/\D/g, '');
+    input.value = maskClockDigits(digits, withHours);
+  });
+}
+
+// Digits typed become a decimal value where the last two digits are always the fraction —
+// "500" -> "5.00", "1025" -> "10.25". Capped at 4 digits (max 99.99).
+function maskDecimalDigits(digits) {
+  digits = digits.replace(/\D/g, '').slice(0, 4);
+  if (!digits) return '';
+  const dec = digits.slice(-2).padStart(2, '0');
+  const wholeRaw = digits.slice(0, -2);
+  const whole = wholeRaw ? String(parseInt(wholeRaw, 10)) : '0';
+  return `${whole}.${dec}`;
+}
+
+function attachDecimalMask(input) {
+  input.addEventListener('input', () => {
+    const digits = input.value.replace(/\D/g, '');
+    input.value = maskDecimalDigits(digits);
+  });
+}
+
+// Distances short enough to be a "split within" a typical run — these back the Records average.
+const SPLIT_DISTANCES = [
+  { key: '400m', label: '400 m', km: 0.4 },
+  { key: '800m', label: '800 m', km: 0.8 },
+  { key: '1k', label: '1 km', km: 1 },
+  { key: '2k', label: '2 km', km: 2 },
+  { key: 'mile', label: 'Mile', km: KM_PER_MI },
+  { key: '2mile', label: '2 Mile', km: 2 * KM_PER_MI },
+  { key: '5k', label: '5K', km: 5 },
+];
+
+// Superset used for the quick-fill distance chips (includes full race distances, not just splits).
+const QUICK_FILL_DISTANCES = [
+  ...SPLIT_DISTANCES,
+  { key: '10k', label: '10K', km: 10 },
+  { key: '10mile', label: '10 Mile', km: 10 * KM_PER_MI },
+  { key: 'half', label: 'Half Marathon', km: 21.0975 },
+];
+
+const store = {
+  load() {
+    try {
+      return JSON.parse(localStorage.getItem('runCalc.entries') || '[]');
+    } catch { return []; }
+  },
+  save(entries) {
+    try { localStorage.setItem('runCalc.entries', JSON.stringify(entries)); } catch {}
+  },
+  loadWeight() {
+    try {
+      return JSON.parse(localStorage.getItem('runCalc.weight') || 'null');
+    } catch { return null; }
+  },
+  saveWeight(w) {
+    try { localStorage.setItem('runCalc.weight', JSON.stringify(w)); } catch {}
+  }
+};
+
+let entries = store.load();
+let recordSort = 'distance';
+let recordSortDir = 'asc';
+let runSort = 'date';
+let recordSurface = 'all';
+let runSurface = 'street';
+let weightUnit = 'kg';
+let distUnit = 'km';
+let speedUnit = 'kmh';
+let paceUnit = 'km';
+
+const weightInput = document.getElementById('weightInput');
+const wUnitKg = document.getElementById('wUnitKg');
+const wUnitLb = document.getElementById('wUnitLb');
+const dUnitKm = document.getElementById('dUnitKm');
+const dUnitMi = document.getElementById('dUnitMi');
+const distInput = document.getElementById('distInput');
+const distChips = document.getElementById('distChips');
+const timeInput = document.getElementById('timeInput');
+const speedInput = document.getElementById('speedInput');
+const sUnitKmh = document.getElementById('sUnitKmh');
+const sUnitMph = document.getElementById('sUnitMph');
+const paceInput = document.getElementById('paceInput');
+const pUnitKm = document.getElementById('pUnitKm');
+const pUnitMi = document.getElementById('pUnitMi');
+const surfaceStreet = document.getElementById('surfaceStreet');
+const surfaceTreadmill = document.getElementById('surfaceTreadmill');
+const labelInput = document.getElementById('labelInput');
+const dateInput = document.getElementById('dateInput');
+const addBtn = document.getElementById('addBtn');
+const entriesList = document.getElementById('entriesList');
+const summaryGrid = document.getElementById('summaryGrid');
+const recordsList = document.getElementById('recordsList');
+
+// Arms a destructive button on first click (shows a confirm state) and only fires on the second —
+// avoids relying on window.confirm(), which sandboxed embeds can silently swallow.
+function armConfirm(btn, action) {
+  const original = btn.textContent;
+  let armed = false;
+  let timer = null;
+  btn.addEventListener('click', () => {
+    if (!armed) {
+      armed = true;
+      btn.textContent = 'Click again to confirm — replaces current data';
+      btn.classList.add('confirm-armed');
+      timer = setTimeout(() => {
+        armed = false;
+        btn.textContent = original;
+        btn.classList.remove('confirm-armed');
+      }, 4000);
+    } else {
+      clearTimeout(timer);
+      armed = false;
+      btn.textContent = original;
+      btn.classList.remove('confirm-armed');
+      action();
+    }
+  });
+}
+
+// --- GitHub sync: uses the Contents API directly from the browser with a user-supplied token.
+// No server involved — the token and every request go straight to api.github.com.
+// Owner/repo/branch/path are fixed to this app's own repo rather than exposed as settings.
+const GH_DEFAULTS = { owner: 'jsospina89', repo: 'Claudio', branch: 'claude/running-calculator-q9h1f8', path: 'running-data.json' };
+
+// The token is kept in memory only for this page load — never written to localStorage —
+// so it doesn't linger in the browser. Paste it again each time you come back to sync.
+// (One old exception: if a token from before this change is still sitting in storage from
+// an earlier version of this app, it's read once here and immediately erased.)
+function ghConsumePreviouslyStoredToken() {
+  try {
+    const t = localStorage.getItem('runCalc.ghToken');
+    if (t) localStorage.removeItem('runCalc.ghToken');
+    return t || '';
+  } catch { return ''; }
+}
+
+const ghTokenInput = document.getElementById('ghToken');
+const ghSyncBtn = document.getElementById('ghSyncBtn');
+const ghPullBtn = document.getElementById('ghPullBtn');
+const ghStatus = document.getElementById('ghStatus');
+
+const carriedOverToken = ghConsumePreviouslyStoredToken();
+if (carriedOverToken) {
+  ghTokenInput.value = carriedOverToken;
+  ghStatus.textContent = 'Loaded a token saved by an earlier version, one last time — it will not be remembered going forward.';
+}
+
+function ghConfig() {
+  return { token: ghTokenInput.value.trim(), ...GH_DEFAULTS };
+}
+
+function utf8ToBase64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function base64ToUtf8(b64) {
+  return decodeURIComponent(escape(atob(b64.replace(/\n/g, ''))));
+}
+
+async function ghGetFile(cfg) {
+  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}?ref=${encodeURIComponent(cfg.branch)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${cfg.token}`, Accept: 'application/vnd.github+json' }
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`GET ${res.status}`);
+  const data = await res.json();
+  return { sha: data.sha, json: JSON.parse(base64ToUtf8(data.content)) };
+}
+
+async function ghPutFile(cfg, payload, sha) {
+  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}`;
+  const body = {
+    message: `Update running data (${payload.entries.length} run${payload.entries.length === 1 ? '' : 's'})`,
+    content: utf8ToBase64(JSON.stringify(payload, null, 2)),
+    branch: cfg.branch
+  };
+  if (sha) body.sha = sha;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${cfg.token}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`PUT ${res.status}${errText ? ' — ' + errText.slice(0, 200) : ''}`);
+  }
+  return res.json();
+}
+
+async function syncToGitHub() {
+  const cfg = ghConfig();
+  if (!cfg.token) return;
+  ghStatus.textContent = 'Syncing…';
+  try {
+    const existing = await ghGetFile(cfg);
+    const payload = { entries, weight: store.loadWeight() };
+    await ghPutFile(cfg, payload, existing ? existing.sha : null);
+    ghStatus.textContent = `Synced at ${new Date().toLocaleTimeString()} — ${entries.length} run${entries.length === 1 ? '' : 's'} committed to ${cfg.branch}.`;
+  } catch (err) {
+    ghStatus.textContent = `Sync failed: ${err.message}`;
+  }
+}
+
+ghSyncBtn.addEventListener('click', syncToGitHub);
+
+// Shared by "Pull from GitHub" and "Import" — both hand it a {entries, weight} shape
+// (or a bare entries array) and it applies it as the current dataset.
+function applyRestoredData(parsed) {
+  const restoredEntries = Array.isArray(parsed) ? parsed : parsed.entries;
+  if (!Array.isArray(restoredEntries)) return false;
+  entries = restoredEntries;
+  store.save(entries);
+  if (parsed.weight && parsed.weight.value > 0) {
+    weightInput.value = parsed.weight.value;
+    weightUnit = parsed.weight.unit === 'lb' ? 'lb' : 'kg';
+    setActiveToggle(weightUnit === 'kg' ? wUnitKg : wUnitLb, [wUnitKg, wUnitLb]);
+    store.saveWeight(parsed.weight);
+  }
+  render();
+  return true;
+}
+
+armConfirm(ghPullBtn, async () => {
+  const cfg = ghConfig();
+  if (!cfg.token) { ghStatus.textContent = 'Add a token first.'; return; }
+  ghStatus.textContent = 'Pulling…';
+  try {
+    const existing = await ghGetFile(cfg);
+    if (!existing) { ghStatus.textContent = 'No data file found in the repo yet — try Sync now first.'; return; }
+    if (!applyRestoredData(existing.json)) { ghStatus.textContent = 'File found but not in the expected format.'; return; }
+    ghStatus.textContent = `Pulled ${entries.length} run${entries.length === 1 ? '' : 's'} from GitHub.`;
+  } catch (err) {
+    ghStatus.textContent = `Pull failed: ${err.message}`;
+  }
+});
+
+const downloadBtn = document.getElementById('downloadBtn');
+const importBtn = document.getElementById('importBtn');
+const importFile = document.getElementById('importFile');
+
+downloadBtn.addEventListener('click', () => {
+  const payload = JSON.stringify({ entries, weight: store.loadWeight() }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `running-data-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+importBtn.addEventListener('click', () => importFile.click());
+
+importFile.addEventListener('change', () => {
+  const file = importFile.files[0];
+  importFile.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try { parsed = JSON.parse(reader.result); } catch { flash(importBtn); return; }
+    if (!applyRestoredData(parsed)) { flash(importBtn); return; }
+    syncToGitHub();
+  };
+  reader.readAsText(file);
+});
+
+attachDecimalMask(distInput);
+attachClockMask(timeInput, true);
+attachClockMask(paceInput, false);
+
+distChips.innerHTML = QUICK_FILL_DISTANCES.map(c => `<button type="button" class="chip" data-key="${c.key}">${c.label}</button>`).join('');
+distChips.querySelectorAll('.chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const dist = QUICK_FILL_DISTANCES.find(c => c.key === btn.dataset.key);
+    const val = distUnit === 'km' ? dist.km : dist.km / KM_PER_MI;
+    distInput.value = val.toFixed(2);
+  });
+});
+
+const savedWeight = store.loadWeight();
+if (savedWeight) {
+  weightInput.value = savedWeight.value;
+  weightUnit = savedWeight.unit;
+  setActiveToggle(weightUnit === 'kg' ? wUnitKg : wUnitLb, [wUnitKg, wUnitLb]);
+}
+dateInput.valueAsDate = new Date();
+
+function setActiveToggle(active, group) {
+  group.forEach(btn => btn.classList.toggle('active', btn === active));
+}
+
+wUnitKg.addEventListener('click', () => { weightUnit = 'kg'; setActiveToggle(wUnitKg, [wUnitKg, wUnitLb]); persistWeight(); });
+wUnitLb.addEventListener('click', () => { weightUnit = 'lb'; setActiveToggle(wUnitLb, [wUnitKg, wUnitLb]); persistWeight(); });
+dUnitKm.addEventListener('click', () => { distUnit = 'km'; setActiveToggle(dUnitKm, [dUnitKm, dUnitMi]); });
+dUnitMi.addEventListener('click', () => { distUnit = 'mi'; setActiveToggle(dUnitMi, [dUnitKm, dUnitMi]); });
+sUnitKmh.addEventListener('click', () => { speedUnit = 'kmh'; setActiveToggle(sUnitKmh, [sUnitKmh, sUnitMph]); });
+sUnitMph.addEventListener('click', () => { speedUnit = 'mph'; setActiveToggle(sUnitMph, [sUnitKmh, sUnitMph]); });
+pUnitKm.addEventListener('click', () => { paceUnit = 'km'; setActiveToggle(pUnitKm, [pUnitKm, pUnitMi]); });
+pUnitMi.addEventListener('click', () => { paceUnit = 'mi'; setActiveToggle(pUnitMi, [pUnitKm, pUnitMi]); });
+surfaceStreet.addEventListener('click', () => { runSurface = 'street'; setActiveToggle(surfaceStreet, [surfaceStreet, surfaceTreadmill]); });
+surfaceTreadmill.addEventListener('click', () => { runSurface = 'treadmill'; setActiveToggle(surfaceTreadmill, [surfaceStreet, surfaceTreadmill]); });
+weightInput.addEventListener('input', persistWeight);
+
+function persistWeight() {
+  const v = parseFloat(weightInput.value);
+  if (v > 0) store.saveWeight({ value: v, unit: weightUnit });
+}
+
+function getWeightKg() {
+  const v = parseFloat(weightInput.value);
+  if (!(v > 0)) return null;
+  return weightUnit === 'kg' ? v : v * KG_PER_LB;
+}
+
+// Given any two of {distance, time, speed, pace}, solve for distance (km & mi) and duration (hours).
+// Returns null if fewer than two usable values were given, or the pair can't fix an absolute
+// distance/time (speed + pace alone are just reciprocals of each other).
+function solveDistanceAndTime({ distVal, distUnit, durationHours, speedVal, speedUnit, paceMin, paceUnit }) {
+  const haveDist = distVal > 0;
+  const haveTime = durationHours > 0;
+  const haveSpeed = speedVal > 0;
+  const havePace = paceMin > 0;
+
+  const distKmIfKnown = haveDist ? (distUnit === 'km' ? distVal : distVal * KM_PER_MI) : null;
+  const distMiIfKnown = haveDist ? (distUnit === 'mi' ? distVal : distVal / KM_PER_MI) : null;
+
+  let km, mi, hours;
+
+  if (haveDist && haveTime) {
+    km = distKmIfKnown; mi = distMiIfKnown; hours = durationHours;
+  } else if (haveDist && haveSpeed) {
+    km = distKmIfKnown; mi = distMiIfKnown;
+    hours = speedUnit === 'kmh' ? km / speedVal : mi / speedVal;
+  } else if (haveDist && havePace) {
+    km = distKmIfKnown; mi = distMiIfKnown;
+    hours = paceUnit === 'km' ? (paceMin * km) / 60 : (paceMin * mi) / 60;
+  } else if (haveTime && haveSpeed) {
+    hours = durationHours;
+    if (speedUnit === 'kmh') { km = speedVal * hours; mi = km / KM_PER_MI; }
+    else { mi = speedVal * hours; km = mi * KM_PER_MI; }
+  } else if (haveTime && havePace) {
+    hours = durationHours;
+    if (paceUnit === 'km') { km = (hours * 60) / paceMin; mi = km / KM_PER_MI; }
+    else { mi = (hours * 60) / paceMin; km = mi * KM_PER_MI; }
+  } else {
+    return null;
+  }
+
+  if (!(km > 0) || !(hours > 0)) return null;
+  return { km, mi, hours };
+}
+
+addBtn.addEventListener('click', () => {
+  const distValRaw = distInput.value.trim();
+  const timeValRaw = timeInput.value.trim();
+  const speedValRaw = speedInput.value.trim();
+  const paceValRaw = paceInput.value.trim();
+
+  const distVal = distValRaw ? parseFloat(distValRaw) : NaN;
+  const durationHours = timeValRaw ? parseTimeToHours(timeValRaw) : null;
+  const speedVal = speedValRaw ? parseFloat(speedValRaw) : NaN;
+  const paceMin = paceValRaw ? parsePaceToMinutes(paceValRaw) : null;
+
+  if (distValRaw && !(distVal > 0)) { flash(distInput); return; }
+  if (timeValRaw && !durationHours) { flash(timeInput); return; }
+  if (speedValRaw && !(speedVal > 0)) { flash(speedInput); return; }
+  if (paceValRaw && !paceMin) { flash(paceInput); return; }
+
+  const weightKg = getWeightKg();
+  if (!weightKg) { flash(weightInput); return; }
+
+  const solved = solveDistanceAndTime({
+    distVal: distVal > 0 ? distVal : null, distUnit,
+    durationHours,
+    speedVal: speedVal > 0 ? speedVal : null, speedUnit,
+    paceMin, paceUnit
+  });
+
+  if (!solved) {
+    [distInput, timeInput, speedInput, paceInput].forEach(flash);
+    return;
+  }
+
+  const { km, mi, hours } = solved;
+  const mph = mi / hours;
+  const met = metForSpeedMph(mph);
+  const calories = met * weightKg * hours;
+
+  entries.push({
+    id: Date.now(),
+    label: labelInput.value.trim() || 'Run',
+    date: dateInput.value || null,
+    surface: runSurface,
+    km, mi, durationHours: hours, calories
+  });
+  store.save(entries);
+
+  distInput.value = '';
+  timeInput.value = '';
+  speedInput.value = '';
+  paceInput.value = '';
+  labelInput.value = '';
+  render();
+  syncToGitHub();
+
+  document.getElementById('runsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+function flash(el) {
+  el.style.borderColor = 'var(--danger)';
+  setTimeout(() => { el.style.borderColor = ''; }, 900);
+}
+
+function deleteEntry(id) {
+  entries = entries.filter(e => e.id !== id);
+  store.save(entries);
+  render();
+  syncToGitHub();
+}
+
+// For a split distance, average the time that every long-enough run's own pace implies for it.
+function getSplitAverage(split, pool) {
+  const qualifying = pool.filter(e => e.km >= split.km);
+  if (qualifying.length === 0) return null;
+  const impliedHoursList = qualifying.map(e => (split.km / e.km) * e.durationHours);
+  const avgHours = impliedHoursList.reduce((a, b) => a + b, 0) / impliedHoursList.length;
+  const mi = split.km / KM_PER_MI;
+  return {
+    hours: avgHours,
+    mi,
+    paceMinPerKm: avgHours * 60 / split.km,
+    paceMinPerMi: avgHours * 60 / mi,
+    kmh: split.km / avgHours,
+    mph: mi / avgHours,
+    sampleSize: qualifying.length
+  };
+}
+
+// The single run whose own pace implies the fastest time for a split distance — the actual record holder.
+function getSplitBest(split, pool) {
+  const qualifying = pool.filter(e => e.km >= split.km);
+  if (qualifying.length === 0) return null;
+  let best = null;
+  let bestHours = Infinity;
+  qualifying.forEach(e => {
+    const implied = (split.km / e.km) * e.durationHours;
+    if (implied < bestHours) { bestHours = implied; best = e; }
+  });
+  const mi = split.km / KM_PER_MI;
+  return {
+    hours: bestHours,
+    mi,
+    paceMinPerKm: bestHours * 60 / split.km,
+    paceMinPerMi: bestHours * 60 / mi,
+    kmh: split.km / bestHours,
+    mph: mi / bestHours,
+    entry: best
+  };
+}
+
+function renderRecords() {
+  document.querySelectorAll('.col-sort-btn').forEach(btn => {
+    const isActive = btn.dataset.sort === recordSort;
+    btn.classList.toggle('active', isActive);
+    const arrow = btn.querySelector('.arrow');
+    if (arrow) arrow.textContent = isActive ? (recordSortDir === 'asc' ? ' ▲' : ' ▼') : '';
+  });
+  document.querySelectorAll('.surface-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.surface === recordSurface);
+  });
+
+  const pool = recordSurface === 'all' ? entries : entries.filter(e => (e.surface || 'street') === recordSurface);
+  const dir = recordSortDir === 'asc' ? 1 : -1;
+
+  const rows = SPLIT_DISTANCES.map(split => ({ split, avg: getSplitAverage(split, pool) }));
+  const withData = rows.filter(r => r.avg);
+  const withoutData = rows.filter(r => !r.avg);
+  if (recordSort === 'distance') withData.sort((a, b) => dir * (a.split.km - b.split.km));
+  else if (recordSort === 'pace') {
+    withData.sort((a, b) => dir * (Math.round(a.avg.paceMinPerKm * 1000) - Math.round(b.avg.paceMinPerKm * 1000)) || (a.split.km - b.split.km));
+  } else if (recordSort === 'speed') {
+    withData.sort((a, b) => dir * (Math.round(a.avg.kmh * 1000) - Math.round(b.avg.kmh * 1000)) || (a.split.km - b.split.km));
+  }
+  const ordered = [...withData, ...withoutData];
+
+  recordsList.innerHTML = ordered.map(({ split, avg }) => {
+    if (!avg) {
+      return `
+        <div class="record">
+          <div class="cat">${split.label}</div>
+          <div class="none">No run yet covers this distance</div>
+        </div>
+      `;
+    }
+    const best = getSplitBest(split, pool);
+    return `
+      <div class="record">
+        <div class="cat">${split.label}</div>
+        <div class="m"><div class="v">${fmtHMS(avg.hours)}</div><div class="l">Avg time</div></div>
+        <div class="m"><div class="v fast">${fmtHMS(best.hours)}</div><div class="l">Best time</div></div>
+        <div class="m"><div class="v">${fmtPace(avg.paceMinPerMi)} /mi · ${fmtPace(avg.paceMinPerKm)} /km</div><div class="l">Avg pace</div></div>
+        <div class="m"><div class="v fast">${fmtPace(best.paceMinPerMi)} /mi · ${fmtPace(best.paceMinPerKm)} /km</div><div class="l">Best pace</div></div>
+        <div class="m"><div class="v">${avg.mph.toFixed(2)} mph / ${avg.kmh.toFixed(2)} km/h</div><div class="l">Avg speed</div></div>
+        <div class="m"><div class="v fast">${best.mph.toFixed(2)} mph / ${best.kmh.toFixed(2)} km/h</div><div class="l">Best speed</div></div>
+        <div class="src">Averaged from ${avg.sampleSize} run${avg.sampleSize === 1 ? '' : 's'} of ${split.label} or longer · best by "${escapeHtml(best.entry.label)}"${best.entry.date ? ' (' + best.entry.date + ')' : ''}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+document.querySelectorAll('.col-sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (recordSort === btn.dataset.sort) {
+      recordSortDir = recordSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      recordSort = btn.dataset.sort;
+      recordSortDir = 'asc';
+    }
+    renderRecords();
+  });
+});
+
+document.querySelectorAll('.surface-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => { recordSurface = btn.dataset.surface; renderRecords(); });
+});
+
+document.querySelectorAll('.run-sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => { runSort = btn.dataset.sort; render(); });
+});
+
+function sortedEntries() {
+  const list = [...entries];
+  if (runSort === 'date') list.sort((a, b) => b.id - a.id);
+  else if (runSort === 'distance') list.sort((a, b) => b.km - a.km);
+  else if (runSort === 'pace') list.sort((a, b) => (a.durationHours * 60 / a.km) - (b.durationHours * 60 / b.km));
+  else if (runSort === 'speed') list.sort((a, b) => (b.km / b.durationHours) - (a.km / a.durationHours));
+  return list;
+}
+
+function render() {
+  document.querySelectorAll('.run-sort-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.sort === runSort);
+  });
+
+  entriesList.innerHTML = '';
+  if (entries.length === 0) {
+    entriesList.innerHTML = '<div class="empty">No runs logged yet — add your first one above.</div>';
+  } else {
+    sortedEntries().forEach(e => {
+      const paceMinPerMi = e.durationHours * 60 / e.mi;
+      const paceMinPerKm = e.durationHours * 60 / e.km;
+      const mph = e.mi / e.durationHours;
+      const kmh = e.km / e.durationHours;
+      const coveredSplits = SPLIT_DISTANCES.filter(s => e.km >= s.km);
+      const splitChips = coveredSplits.map(s => {
+        const impliedHours = (s.km / e.km) * e.durationHours;
+        return `<span class="split-chip">${s.label}: ${fmtHMS(impliedHours)}</span>`;
+      }).join('');
+
+      const div = document.createElement('div');
+      div.className = 'entry';
+      div.innerHTML = `
+        <div>
+          <div class="title">${escapeHtml(e.label)} ${e.date ? `<span class="date">${e.date}</span>` : ''} <span class="badge">${fmtHMS(e.durationHours)}</span> <span class="badge surface">${(e.surface || 'street') === 'treadmill' ? 'Treadmill' : 'Street'}</span></div>
+          <div class="metrics">
+            <div class="m"><div class="v">${e.km.toFixed(2)} km / ${e.mi.toFixed(2)} mi</div><div class="l">Distance</div></div>
+            <div class="m"><div class="v">${mph.toFixed(2)} mph / ${kmh.toFixed(2)} km/h</div><div class="l">Speed</div></div>
+            <div class="m"><div class="v">${fmtPace(paceMinPerMi)} /mi · ${fmtPace(paceMinPerKm)} /km</div><div class="l">Pace</div></div>
+            <div class="m"><div class="v">${Math.round(e.calories)} kcal</div><div class="l">Calories</div></div>
+          </div>
+          ${splitChips ? `<div class="split-chips">${splitChips}</div>` : ''}
+        </div>
+        <button class="del" data-id="${e.id}">Delete</button>
+      `;
+      entriesList.appendChild(div);
+    });
+    entriesList.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', () => deleteEntry(Number(btn.dataset.id)));
+    });
+  }
+
+  const totalKm = entries.reduce((s, e) => s + e.km, 0);
+  const totalMi = entries.reduce((s, e) => s + e.mi, 0);
+  const totalHours = entries.reduce((s, e) => s + e.durationHours, 0);
+  const totalCal = entries.reduce((s, e) => s + e.calories, 0);
+  const avgPaceMi = totalHours > 0 && totalMi > 0 ? totalHours * 60 / totalMi : 0;
+  const avgPaceKm = totalHours > 0 && totalKm > 0 ? totalHours * 60 / totalKm : 0;
+
+  summaryGrid.innerHTML = `
+    <div class="stat"><div class="val">${totalKm.toFixed(2)} km</div><div class="label">Distance</div></div>
+    <div class="stat"><div class="val">${totalMi.toFixed(2)} mi</div><div class="label">Distance</div></div>
+    <div class="stat"><div class="val">${fmtHMS(totalHours)}</div><div class="label">Total time</div></div>
+    <div class="stat"><div class="val">${fmtPace(avgPaceMi)} /mi</div><div class="label">Avg pace</div></div>
+    <div class="stat"><div class="val">${fmtPace(avgPaceKm)} /km</div><div class="label">Avg pace</div></div>
+    <div class="stat"><div class="val">${Math.round(totalCal)}</div><div class="label">Calories</div></div>
+  `;
+
+  renderRecords();
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+render();
+</script>
+</body>
+</html>
