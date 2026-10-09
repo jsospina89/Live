@@ -328,7 +328,7 @@
         <label for="speedInput">Speed</label>
         <div class="field-inline">
           <div class="mode-panel" data-mode-field="speed" data-mode="type">
-            <input type="number" id="speedInput" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 12">
+            <input type="text" inputmode="numeric" id="speedInput" placeholder="e.g. 1200 → 12.00">
           </div>
           <div class="mode-panel" data-mode-field="speed" data-mode="pick" hidden>
             <div class="value-row">
@@ -866,6 +866,7 @@ importFile.addEventListener('change', () => {
 });
 
 attachDecimalMask(distInput);
+attachDecimalMask(speedInput);
 attachClockMask(timeInput, true);
 attachClockMask(paceInput, false);
 
